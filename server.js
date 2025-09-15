@@ -51,12 +51,12 @@ app.get("/track-order", async (req, res) => {
   }
 
   try {
-    // gọi API Shopify tìm đơn theo ID + email
+    // Chỉ filter theo name
     const response = await fetch(
-      `https://${SHOP}/admin/api/2023-10/orders.json?status=any&name=${order_id}&email=${email}`,
+      `https://${SHOP}/admin/api/2023-10/orders.json?status=any&name=${order_id}`,
       {
         headers: {
-          "X-Shopify-Access-Token": SHOPIFY_TOKEN,
+          "X-Shopify-Access-Token": ADMIN_API_TOKEN,
           "Content-Type": "application/json",
         },
       }
@@ -72,18 +72,21 @@ app.get("/track-order", async (req, res) => {
       return res.status(404).json({ error: "Order not found" });
     }
 
-    const order = data.orders[0]; // lấy đơn đầu tiên khớp
+    const order = data.orders[0];
 
-    // timeline cơ bản
+    // check email khớp
+    if (order.email.toLowerCase() !== email.toLowerCase()) {
+      return res.status(403).json({ error: "Email does not match order" });
+    }
+
+    // timeline trả về
     const timeline = {
       order_id: order.name,
       email: order.email,
-      financial_status: order.financial_status, // paid, pending...
-      fulfillment_status: order.fulfillment_status || "unfulfilled", // shipped/delivered
+      financial_status: order.financial_status,
+      fulfillment_status: order.fulfillment_status || "unfulfilled",
       placed_at: order.created_at,
       shipped_at: order.fulfillments?.[0]?.created_at || null,
-      delivered_at:
-        order.fulfillments?.[0]?.tracking_info?.delivered_at || null,
       tracking_number: order.fulfillments?.[0]?.tracking_number || null,
       tracking_url: order.fulfillments?.[0]?.tracking_url || null,
     };
