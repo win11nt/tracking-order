@@ -1,10 +1,19 @@
 import express from "express";
+import cors from "cors";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
 
 dotenv.config();
 
 const app = express();
+
+// Cho phép CORS từ tất cả domain (test)
+app.use(cors());
+
+// Nếu muốn chỉ cho phép domain shop
+// app.use(cors({ origin: "https://gottaprints.com" }));
+
+app.use(express.json());
 
 const SHOP = process.env.SHOPIFY_SHOP; // ví dụ: gottaprints.myshopify.com
 const SHOPIFY_TOKEN = process.env.SHOPIFY_TOKEN;
