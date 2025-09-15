@@ -42,7 +42,7 @@ app.get("/orders", async (req, res) => {
   }
 });
 
-// endpoint track đơn theo id
+// endpoint track đơn theo id hoặc name
 app.get("/track-order", async (req, res) => {
   const { order_id, email } = req.query;
 
@@ -51,16 +51,23 @@ app.get("/track-order", async (req, res) => {
   }
 
   try {
-    // Chỉ filter theo name
-    const response = await fetch(
-      `https://${SHOP}/admin/api/2023-10/orders.json?status=any&name=${order_id}`,
-      {
-        headers: {
-          "X-Shopify-Access-Token": SHOPIFY_TOKEN,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    let apiUrl;
+
+    // Nếu order_id dài (ID Shopify), gọi theo /orders/{id}.json
+    if (/^\d{10,}$/.test(order_id)) {
+      apiUrl = `https://${SHOP}/admin/api/2023-10/orders/${order_id}.json`;
+    } else {
+      // Nếu là order name (#1001 → 1001), gọi theo name
+      const cleanName = order_id.replace("#", "");
+      apiUrl = `https://${SHOP}/admin/api/2023-10/orders.json?status=any&name=${cleanName}`;
+    }
+
+    const response = await fetch(apiUrl, {
+      headers: {
+        "X-Shopify-Access-Token": SHOPIFY_TOKEN,
+        "Content-Type": "application/json",
+      },
+    });
 
     if (!response.ok) {
       const text = await response.text();
@@ -68,14 +75,17 @@ app.get("/track-order", async (req, res) => {
     }
 
     const data = await response.json();
-    if (!data.orders || data.orders.length === 0) {
+
+    // Nếu gọi bằng ID thì data có dạng { order: {...} }
+    // Nếu gọi bằng name thì data có dạng { orders: [...] }
+    const order = data.order || data.orders?.[0];
+
+    if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
 
-    const order = data.orders[0];
-
     // check email khớp
-    if (order.email.toLowerCase() !== email.toLowerCase()) {
+    if (order.email?.toLowerCase() !== email.toLowerCase()) {
       return res.status(403).json({ error: "Email does not match order" });
     }
 
@@ -92,6 +102,25 @@ app.get("/track-order", async (req, res) => {
     };
 
     res.json(timeline);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/test-order", async (req, res) => {
+  try {
+    const orderId = "6365486809282"; // test cứng
+    const response = await fetch(
+      `https://${SHOP}/admin/api/2023-10/orders/${orderId}.json`,
+      {
+        headers: {
+          "X-Shopify-Access-Token": SHOPIFY_TOKEN,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    const data = await response.json();
+    res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
