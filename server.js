@@ -56,7 +56,7 @@ app.get("/track-order", async (req, res) => {
       `https://${SHOP}/admin/api/2023-10/orders.json?status=any&name=${order_id}`,
       {
         headers: {
-          "X-Shopify-Access-Token": ADMIN_API_TOKEN,
+          "X-Shopify-Access-Token": SHOPIFY_TOKEN,
           "Content-Type": "application/json",
         },
       }
