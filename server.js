@@ -108,6 +108,7 @@ app.get("/track-order", async (req, res) => {
       shipped_at: order.fulfillments?.[0]?.created_at || null,
       tracking_number: order.fulfillments?.[0]?.tracking_number || null,
       tracking_url: order.fulfillments?.[0]?.tracking_url || null,
+      order_status_url: order.order_status_url, // 👈 cái này Shopify trả về
     };
 
     res.json(timeline);
