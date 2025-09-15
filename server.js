@@ -9,6 +9,9 @@ const app = express();
 const SHOP = process.env.SHOPIFY_SHOP; // ví dụ: gottaprints.myshopify.com
 const ADMIN_API_TOKEN = process.env.ADMIN_API_TOKEN;
 
+console.log("SHOP =", SHOP);
+console.log("ADMIN_API_TOKEN=", ADMIN_API_TOKEN ? "Loaded" : "Missing");
+
 // test route
 app.get("/", (req, res) => {
   res.send("Shopify Tracking API is running!");
