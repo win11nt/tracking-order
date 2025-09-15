@@ -10,7 +10,7 @@ const SHOP = process.env.SHOPIFY_SHOP; // ví dụ: gottaprints.myshopify.com
 const SHOPIFY_TOKEN = process.env.SHOPIFY_TOKEN;
 
 console.log("SHOP =", SHOP);
-console.log("ADMIN_API_TOKEN=", SHOPIFY_TOKEN ? "Loaded" : "Missing");
+console.log("SHOPIFY_TOKEN=", SHOPIFY_TOKEN ? "Loaded" : "Missing");
 
 // test route
 app.get("/", (req, res) => {
@@ -24,7 +24,7 @@ app.get("/orders", async (req, res) => {
       `https://${SHOP}/admin/api/2023-10/orders.json?status=any&limit=5`, // limit để test
       {
         headers: {
-          "X-Shopify-Access-Token": ADMIN_API_TOKEN,
+          "X-Shopify-Access-Token": SHOPIFY_TOKEN,
           "Content-Type": "application/json",
         },
       }
@@ -56,7 +56,7 @@ app.get("/track-order", async (req, res) => {
       `https://${SHOP}/admin/api/2023-10/orders.json?status=any&name=${order_id}&email=${email}`,
       {
         headers: {
-          "X-Shopify-Access-Token": ADMIN_API_TOKEN,
+          "X-Shopify-Access-Token": SHOPIFY_TOKEN,
           "Content-Type": "application/json",
         },
       }
