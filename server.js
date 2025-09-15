@@ -43,7 +43,7 @@ app.get("/orders", async (req, res) => {
 });
 
 // endpoint track đơn theo id
-app.get("/track", async (req, res) => {
+app.get("/track-order", async (req, res) => {
   const { order_id, email } = req.query;
 
   if (!order_id || !email) {
