@@ -21,6 +21,10 @@ const SHOPIFY_TOKEN = process.env.SHOPIFY_TOKEN;
 console.log("SHOP =", SHOP);
 console.log("SHOPIFY_TOKEN=", SHOPIFY_TOKEN ? "Loaded" : "Missing");
 
+app.get("/ping", (req, res) => {
+  res.send("pong");
+});
+
 // test route
 app.get("/", (req, res) => {
   res.send("Shopify Tracking API is running!");
