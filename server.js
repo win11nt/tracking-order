@@ -22,7 +22,7 @@ console.log("SHOP =", SHOP);
 console.log("SHOPIFY_TOKEN=", SHOPIFY_TOKEN ? "Loaded" : "Missing");
 
 app.get("/ping", (req, res) => {
-  res.send("pong");
+  res.json({ message: "pong", time: new Date().toISOString() });
 });
 
 // test route
