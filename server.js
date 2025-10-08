@@ -57,55 +57,66 @@ app.get("/orders", async (req, res) => {
 
 // endpoint track đơn theo id hoặc name
 app.get("/track-order", async (req, res) => {
-  const { order_id, email, phone } = req.query;
+  const { order_id, email } = req.query;
 
-  if (!order_id || (!email && !phone)) {
+  if (!order_id || !email) {
     return res
       .status(400)
-      .json({ error: "order_id and either email or phone are required" });
+      .json({ error: "order_id and email/phone are required" });
   }
 
   try {
-    let apiUrl;
+    const cleanName = order_id.replace("#", "").trim();
 
-    if (/^\d{10,}$/.test(order_id)) {
-      apiUrl = `https://${SHOP}/admin/api/2023-10/orders/${order_id}.json`;
-    } else {
-      const cleanName = order_id.replace("#", "");
-      apiUrl = `https://${SHOP}/admin/api/2023-10/orders.json?status=any&name=${cleanName}`;
+    const headers = {
+      "X-Shopify-Access-Token": SHOPIFY_TOKEN,
+      "Content-Type": "application/json",
+    };
+
+    // ---- 1️⃣ Tìm trong 250 đơn mới nhất ----
+    const listUrl = `https://${SHOP}/admin/api/2023-10/orders.json?status=any&limit=250`;
+    const listRes = await fetch(listUrl, { headers });
+
+    if (!listRes.ok)
+      throw new Error(`Shopify API error: ${listRes.statusText}`);
+
+    const { orders } = await listRes.json();
+    let order =
+      orders.find((o) => o.name.replace("#", "") === cleanName) ||
+      orders.find((o) => o.order_status_url?.includes(cleanName));
+
+    // ---- 2️⃣ Nếu không tìm thấy, thử gọi trực tiếp /orders/{id}.json ----
+    if (!order) {
+      const directUrl = `https://${SHOP}/admin/api/2023-10/orders/${cleanName}.json`;
+      const directRes = await fetch(directUrl, { headers });
+
+      if (directRes.ok) {
+        const directData = await directRes.json();
+        order = directData.order;
+      }
     }
-
-    const response = await fetch(apiUrl, {
-      headers: {
-        "X-Shopify-Access-Token": SHOPIFY_TOKEN,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`Shopify API error: ${text}`);
-    }
-
-    const data = await response.json();
-    const order = data.order || data.orders?.[0];
 
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
 
-    // ✅ check email hoặc phone
-    const matchesEmail =
-      email && order.email?.toLowerCase() === email.toLowerCase();
-    const matchesPhone =
-      phone && order.phone?.replace(/\D/g, "") === phone.replace(/\D/g, "");
+    // ---- 3️⃣ Chuẩn hóa email/sđt nhập vào ----
+    const input = email.toLowerCase().replace(/\s+/g, "");
+    const orderEmail = order.email?.toLowerCase() || "";
+    const orderPhone = order.phone?.replace(/\D/g, "");
+    const inputPhoneDigits = input.replace(/\D/g, "");
 
-    if (!matchesEmail && !matchesPhone) {
+    const emailMatch = input && orderEmail === input;
+    const phoneMatch =
+      inputPhoneDigits && orderPhone && orderPhone.endsWith(inputPhoneDigits);
+
+    if (!emailMatch && !phoneMatch) {
       return res
         .status(403)
         .json({ error: "Email or phone does not match order" });
     }
 
+    // ---- 4️⃣ Trả về dữ liệu tracking ----
     const timeline = {
       order_id: order.name,
       email: order.email,
@@ -121,6 +132,7 @@ app.get("/track-order", async (req, res) => {
 
     res.json(timeline);
   } catch (error) {
+    console.error("Track-order error:", error);
     res.status(500).json({ error: error.message });
   }
 });
