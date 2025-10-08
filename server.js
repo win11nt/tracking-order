@@ -57,10 +57,13 @@ app.get("/orders", async (req, res) => {
 
 // endpoint track đơn theo id hoặc name
 app.get("/track-order", async (req, res) => {
-  const { order_id, email } = req.query;
+  const { order_id, email, phone } = req.query;
 
-  if (!order_id || !email) {
-    return res.status(400).json({ error: "order_id and email are required" });
+  // Bắt buộc phải có order_id + (email hoặc phone)
+  if (!order_id || (!email && !phone)) {
+    return res
+      .status(400)
+      .json({ error: "order_id and either email or phone are required" });
   }
 
   try {
@@ -98,8 +101,15 @@ app.get("/track-order", async (req, res) => {
     }
 
     // check email khớp
-    if (order.email?.toLowerCase() !== email.toLowerCase()) {
-      return res.status(403).json({ error: "Email does not match order" });
+    const matchesEmail =
+      email && order.email?.toLowerCase() === email.toLowerCase();
+    const matchesPhone =
+      phone && order.phone?.replace(/\D/g, "") === phone.replace(/\D/g, "");
+
+    if (!matchesEmail && !matchesPhone) {
+      return res
+        .status(403)
+        .json({ error: "Email or phone does not match order" });
     }
 
     // timeline trả về
