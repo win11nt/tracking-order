@@ -59,7 +59,6 @@ app.get("/orders", async (req, res) => {
 app.get("/track-order", async (req, res) => {
   const { order_id, email, phone } = req.query;
 
-  // Bắt buộc phải có order_id + (email hoặc phone)
   if (!order_id || (!email && !phone)) {
     return res
       .status(400)
@@ -69,11 +68,9 @@ app.get("/track-order", async (req, res) => {
   try {
     let apiUrl;
 
-    // Nếu order_id dài (ID Shopify), gọi theo /orders/{id}.json
     if (/^\d{10,}$/.test(order_id)) {
       apiUrl = `https://${SHOP}/admin/api/2023-10/orders/${order_id}.json`;
     } else {
-      // Nếu là order name (#1001 → 1001), gọi theo name
       const cleanName = order_id.replace("#", "");
       apiUrl = `https://${SHOP}/admin/api/2023-10/orders.json?status=any&name=${cleanName}`;
     }
@@ -91,16 +88,13 @@ app.get("/track-order", async (req, res) => {
     }
 
     const data = await response.json();
-
-    // Nếu gọi bằng ID thì data có dạng { order: {...} }
-    // Nếu gọi bằng name thì data có dạng { orders: [...] }
     const order = data.order || data.orders?.[0];
 
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
 
-    // check email khớp
+    // ✅ check email hoặc phone
     const matchesEmail =
       email && order.email?.toLowerCase() === email.toLowerCase();
     const matchesPhone =
@@ -112,17 +106,17 @@ app.get("/track-order", async (req, res) => {
         .json({ error: "Email or phone does not match order" });
     }
 
-    // timeline trả về
     const timeline = {
       order_id: order.name,
       email: order.email,
+      phone: order.phone,
       financial_status: order.financial_status,
       fulfillment_status: order.fulfillment_status || "unfulfilled",
       placed_at: order.created_at,
       shipped_at: order.fulfillments?.[0]?.created_at || null,
       tracking_number: order.fulfillments?.[0]?.tracking_number || null,
       tracking_url: order.fulfillments?.[0]?.tracking_url || null,
-      order_status_url: order.order_status_url, // 👈 cái này Shopify trả về
+      order_status_url: order.order_status_url,
     };
 
     res.json(timeline);
